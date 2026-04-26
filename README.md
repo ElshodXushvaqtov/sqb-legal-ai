@@ -47,6 +47,3 @@ Open: http://127.0.0.1:8000/dashboard
 - AML qonuni
 - Soliq kodeksi 86-modda
 - Markaziy bank yo'riqnomasi
-
-## GDG Build with AI Hackathon 2026
-Problem #10 — AI-powered legal response system
