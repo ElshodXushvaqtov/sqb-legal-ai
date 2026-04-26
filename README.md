@@ -18,3 +18,35 @@ pip install fastapi uvicorn langchain langchain-google-genai langchain-community
 ```
 
 Create `.env`:
+Run:
+```bash
+uvicorn main:app --reload
+```
+
+Open: http://127.0.0.1:8000/dashboard
+
+## Features
+- PDF/DOCX upload and parsing
+- AI classification (type, deadline, risk level)
+- RAG-based response generation using Uzbek law knowledge base
+- Human-in-the-loop approve/reject
+- Audit trail
+- Statistics dashboard
+
+## API Endpoints
+- `GET /` — health check
+- `POST /upload` — upload document
+- `GET /requests` — list all requests
+- `POST /requests/{id}/approve` — approve
+- `POST /requests/{id}/reject` — reject
+
+## Knowledge Base
+10 Uzbek legal documents including:
+- Bank siri qonuni
+- JPK 178-modda
+- AML qonuni
+- Soliq kodeksi 86-modda
+- Markaziy bank yo'riqnomasi
+
+## GDG Build with AI Hackathon 2026
+Problem #10 — AI-powered legal response system
