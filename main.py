@@ -1,16 +1,15 @@
 import os
-import json
 import uuid
 from datetime import datetime
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse  # <-- Added this import
+from fastapi.responses import FileResponse
 import tempfile
 from dotenv import load_dotenv
 
 from src.parser import extract_text
-from src.classifier import classify_request
+from src.classifier import classify_request, check_compliance
 from src.rag import build_knowledge_base, generate_response
 from data.knowledge_base import LEGAL_DOCS
 
@@ -25,44 +24,41 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- NEW: Mount the static folder and create the dashboard route ---
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-@app.get("/dashboard")
-async def get_dashboard():
-    return FileResponse("static/index.html")
-# -------------------------------------------------------------------
-
-# Build knowledge base on startup
 vectorstore = build_knowledge_base(LEGAL_DOCS)
-
-# In-memory storage for requests
 requests_db = []
 
 @app.get("/")
 def root():
     return {"status": "SQB Legal AI ishlayapti"}
 
+@app.get("/dashboard")
+async def get_dashboard():
+    return FileResponse("static/index.html")
+
 @app.post("/upload")
 async def upload_document(file: UploadFile = File(...)):
-    # Save temp file
     suffix = ".pdf" if file.filename.endswith(".pdf") else ".docx"
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
         content = await file.read()
         tmp.write(content)
         tmp_path = tmp.name
 
-    # Extract text
-    text = extract_text(tmp_path)
-    os.unlink(tmp_path)
+    try:
+        text = extract_text(tmp_path)
+    finally:
+        os.unlink(tmp_path)
 
-    # Classify
+    print(f"✅ Text extracted: {len(text)} chars")
+
     classification = classify_request(text)
+    print(f"✅ Classified: {classification}")
 
-    # Generate response
     draft = generate_response(text, classification, vectorstore)
+    print(f"✅ Draft generated: {len(draft)} chars")
 
-    # Save to db
+    compliance = check_compliance(draft)
+    print(f"✅ Compliance checked: {compliance}")
+
     request_id = str(uuid.uuid4())[:8]
     entry = {
         "id": request_id,
@@ -70,12 +66,13 @@ async def upload_document(file: UploadFile = File(...)):
         "text": text[:500],
         "classification": classification,
         "draft_response": draft,
+        "compliance": compliance,
         "status": "pending",
         "created_at": datetime.now().isoformat(),
-        "approved_at": None
+        "approved_at": None,
+        "edited_response": None
     }
     requests_db.append(entry)
-
     return entry
 
 @app.get("/requests")
@@ -99,3 +96,15 @@ def reject_request(request_id: str):
             req["approved_at"] = datetime.now().isoformat()
             return req
     raise HTTPException(status_code=404, detail="Topilmadi")
+
+@app.post("/requests/{request_id}/edit")
+async def edit_request(request_id: str, request: Request):
+    body = await request.json()
+    for req in requests_db:
+        if req["id"] == request_id:
+            req["edited_response"] = body.get("text")
+            return req
+    raise HTTPException(status_code=404, detail="Topilmadi")
+
+# Mount static LAST
+app.mount("/static", StaticFiles(directory="static"), name="static")
