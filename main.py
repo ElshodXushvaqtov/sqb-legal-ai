@@ -53,11 +53,18 @@ async def upload_document(file: UploadFile = File(...)):
     classification = classify_request(text)
     print(f"✅ Classified: {classification}")
 
+
+    docs = vectorstore.similarity_search(text, k=3)
+    relevant_laws_context = "\n".join([doc.page_content for doc in docs])
+
+
     draft = generate_response(text, classification, vectorstore)
     print(f"✅ Draft generated: {len(draft)} chars")
 
-    compliance = check_compliance(draft)
+
+    compliance = check_compliance(draft, relevant_laws_context)
     print(f"✅ Compliance checked: {compliance}")
+    # ------------------------------
 
     request_id = str(uuid.uuid4())[:8]
     entry = {

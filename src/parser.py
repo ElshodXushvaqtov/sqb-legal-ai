@@ -1,4 +1,4 @@
-import fitz  # PyMuPDF
+import fitz
 from docx import Document
 
 def extract_text(file_path: str) -> str:

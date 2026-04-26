@@ -15,18 +15,18 @@ vertexai.init(project=PROJECT_ID, location=LOCATION)
 
 
 def build_knowledge_base(docs: list[str]):
-    # Maintain chunking logic from original project
+
     splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
     chunks = splitter.create_documents(docs)
 
-    # Use local embeddings to save GCP quota
+
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     vectorstore = FAISS.from_documents(chunks, embeddings)
     return vectorstore
 
 
 def generate_response(murojaat_text: str, classification: dict, vectorstore) -> str:
-    # Use the same Gemini 2.5 series for the RAG response
+
     llm = VertexAI(
         model_name="gemini-2.5-flash",
         temperature=0.2,
@@ -34,7 +34,7 @@ def generate_response(murojaat_text: str, classification: dict, vectorstore) -> 
         location=LOCATION
     )
 
-    # Context retrieval
+
     docs = vectorstore.similarity_search(murojaat_text, k=3)
     context = "\n".join([doc.page_content for doc in docs])
 

@@ -1,5 +1,6 @@
 import os
 import json
+import urllib.parse
 import vertexai
 from vertexai.generative_models import GenerativeModel
 from dotenv import load_dotenv
@@ -11,6 +12,19 @@ LOCATION = "us-central1"
 
 vertexai.init(project=PROJECT_ID, location=LOCATION)
 model = GenerativeModel("gemini-2.5-flash")
+
+
+LEX_UZ_LINKS = {
+    "bank siri": "https://lex.uz/uz/docs/-41760",
+    "jinoyat-protsessual": "https://lex.uz/docs/-111460",
+    "jpk": "https://lex.uz/docs/-111460",
+    "banklar va bank faoliyati": "https://lex.uz/acts/-2681",
+    "soliq kodeksi": "https://lex.uz/acts/-4674902",
+    "pul yuvish": "https://lex.uz/acts/-283717",
+    "jinoiy faoliyatdan olingan daromadlarni legallashtirish": "https://lex.uz/acts/-283717",
+    "markaziy bank": "https://lex.uz/acts/-72266",
+    "fuqarolik kodeksi": "https://lex.uz/acts/-111189"
+}
 
 
 def classify_request(text: str) -> dict:
@@ -52,40 +66,29 @@ def classify_request(text: str) -> dict:
         }
 
 
-def check_compliance(draft_response: str) -> dict:
+def check_compliance(draft_response: str, context: str) -> dict:
     prompt = f"""
-    You are an Uzbekistan banking law expert. Analyze this bank response draft.
+    Siz O'zbekiston bank huquqi bo'yicha mutaxassisiz. Quyidagi bank javob loyihasini tahlil qiling.
 
-    Draft:
+    Haqiqiy qonunchilik bazasi (Faqat shu qoidalarga asoslanib xulosa qiling):
+    {context}
+
+    Loyiha matni:
     {draft_response[:1500]}
 
-    Read the draft carefully and identify which specific Uzbek laws and articles were referenced or used in this response.
+    Vazifa: Loyiha yuqoridagi qonunchilik bazasiga zid emasligini tekshiring. Loyihada qaysi qonunlar, kodekslar va moddalarga havola qilinganligini aniqlang.
 
-    Return ONLY this JSON:
+    FAQAT ushbu JSON formatni qaytaring:
     {{
         "muvofiq": true,
         "xavf_darajasi": "low",
-        "muammolar": [],
-        "tavsiyalar": [],
+        "muammolar": ["agar qonunga zid joyi bo'lsa, xatolar ro'yxati"],
+        "tavsiyalar": ["qonun asosida yuridik tavsiyalar"],
         "qonunlar": [
-            {{"nomi": "exact law name and article that appears in the draft", "havola": "https://lex.uz/acts/XXXXX"}}
+            {{"nomi": "Qonun nomi (masalan: Soliq kodeksi, Bank siri to'g'risidagi qonun)"}}
         ],
-        "xulosa": "one sentence about which laws this response is based on"
+        "xulosa": "Javob qaysi qonunlarga asoslanganligi va muvofiqligi haqida 1 ta gap"
     }}
-
-    Rules:
-    - qonunlar must ONLY contain laws that are actually mentioned or referenced in the draft above
-    - Do not add laws that are not in the draft
-    - For havola use real lex.uz links:
-      * Bank siri: https://lex.uz/acts/325746
-      * JPK 178-modda: https://lex.uz/acts/111457
-      * Banklar qonuni: https://lex.uz/acts/14232
-      * Soliq kodeksi: https://lex.uz/acts/2354822
-      * AML qonun: https://lex.uz/acts/3523929
-      * Markaziy bank qonuni: https://lex.uz/acts/38446
-    - muammolar and tavsiyalar must be simple strings only
-    - muvofiq is true if response follows Uzbek banking law
-    RETURN ONLY JSON.
     """
     try:
         response = model.generate_content(prompt)
@@ -108,7 +111,29 @@ def check_compliance(draft_response: str) -> dict:
         result = json.loads(raw)
         result['muammolar'] = [str(m) if not isinstance(m, str) else m for m in result.get('muammolar', [])]
         result['tavsiyalar'] = [str(t) if not isinstance(t, str) else t for t in result.get('tavsiyalar', [])]
-        result['qonunlar'] = result.get('qonunlar', [])
+
+
+        enriched_laws = []
+        for law in result.get('qonunlar', []):
+            law_name = law.get('nomi', '')
+            law_name_lower = law_name.lower()
+
+
+            encoded_name = urllib.parse.quote(law_name)
+            found_link = f"https://lex.uz/uz/search/all?searchtitle={encoded_name}"
+
+
+            for key, link in LEX_UZ_LINKS.items():
+                if key in law_name_lower:
+                    found_link = link
+                    break
+
+            enriched_laws.append({
+                "nomi": law_name,
+                "havola": found_link
+            })
+
+        result['qonunlar'] = enriched_laws
         return result
 
     except Exception as e:
