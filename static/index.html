@@ -14,59 +14,163 @@
     <nav class="bg-blue-900 text-white p-4 shadow-md">
         <div class="max-w-6xl mx-auto flex justify-between items-center">
             <div class="text-xl font-bold tracking-wider">🏦 SQB Legal AI</div>
+            <div class="flex gap-4 text-sm">
+                <button onclick="showPage('dashboard')" id="navDashboard" class="hover:text-blue-300 font-semibold border-b-2 border-white pb-1">Dashboard</button>
+                <button onclick="showPage('audit')" id="navAudit" class="hover:text-blue-300">Audit Trail</button>
+            </div>
             <div class="text-sm">Yuridik Murojaatlarni Boshqarish Tizimi</div>
         </div>
     </nav>
 
-    <main class="max-w-6xl mx-auto mt-8 p-4">
+    <!-- DASHBOARD PAGE -->
+    <div id="pageDashboard">
+        <main class="max-w-6xl mx-auto mt-8 p-4">
 
-        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-8 flex justify-between items-center">
-            <div>
-                <h2 class="text-lg font-semibold text-blue-900">Yangi murojaat yuklash</h2>
-                <p class="text-sm text-gray-500">Prokuratura, soliq yoki MB so'rovlarini (PDF/DOCX) yuklang.</p>
+            <!-- STATISTICS -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
+                    <div id="statTotal" class="text-3xl font-bold text-blue-900">0</div>
+                    <div class="text-xs text-gray-500 mt-1">Jami Murojaatlar</div>
+                </div>
+                <div class="bg-white rounded-lg shadow-sm border border-yellow-200 p-4 text-center">
+                    <div id="statPending" class="text-3xl font-bold text-yellow-600">0</div>
+                    <div class="text-xs text-gray-500 mt-1">Kutilmoqda</div>
+                </div>
+                <div class="bg-white rounded-lg shadow-sm border border-green-200 p-4 text-center">
+                    <div id="statApproved" class="text-3xl font-bold text-green-600">0</div>
+                    <div class="text-xs text-gray-500 mt-1">Tasdiqlangan</div>
+                </div>
+                <div class="bg-white rounded-lg shadow-sm border border-red-200 p-4 text-center">
+                    <div id="statRejected" class="text-3xl font-bold text-red-600">0</div>
+                    <div class="text-xs text-gray-500 mt-1">Rad etilgan</div>
+                </div>
             </div>
-            <div>
-                <input type="file" id="fileInput" class="hidden" onchange="uploadFile()">
-                <button id="uploadBtn" onclick="document.getElementById('fileInput').click()"
-                    class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded shadow transition duration-200">
-                    + Fayl Yuklash
-                </button>
-            </div>
-        </div>
 
-        <h2 class="text-xl font-bold text-gray-700 mb-4">So'nggi Murojaatlar</h2>
-        <div id="requestsList" class="space-y-6">
+            <!-- UPLOAD -->
+            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-8 flex justify-between items-center">
+                <div>
+                    <h2 class="text-lg font-semibold text-blue-900">Yangi murojaat yuklash</h2>
+                    <p class="text-sm text-gray-500">Prokuratura, soliq yoki MB so'rovlarini (PDF/DOCX) yuklang.</p>
+                </div>
+                <div>
+                    <input type="file" id="fileInput" class="hidden" onchange="uploadFile()">
+                    <button id="uploadBtn" onclick="document.getElementById('fileInput').click()"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded shadow transition duration-200">
+                        + Fayl Yuklash
+                    </button>
+                </div>
             </div>
 
-    </main>
+            <h2 class="text-xl font-bold text-gray-700 mb-4">So'nggi Murojaatlar</h2>
+            <div id="requestsList" class="space-y-6"></div>
+        </main>
+    </div>
+
+    <!-- AUDIT TRAIL PAGE -->
+    <div id="pageAudit" class="hidden">
+        <main class="max-w-6xl mx-auto mt-8 p-4">
+            <h2 class="text-xl font-bold text-gray-700 mb-4">📋 Audit Trail — Barcha Amaliyotlar</h2>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <table class="w-full text-sm">
+                    <thead class="bg-blue-900 text-white">
+                        <tr>
+                            <th class="p-3 text-left">ID</th>
+                            <th class="p-3 text-left">Fayl</th>
+                            <th class="p-3 text-left">Tur</th>
+                            <th class="p-3 text-left">Risk</th>
+                            <th class="p-3 text-left">Holat</th>
+                            <th class="p-3 text-left">Yuklangan vaqt</th>
+                            <th class="p-3 text-left">Tasdiqlangan vaqt</th>
+                        </tr>
+                    </thead>
+                    <tbody id="auditTable" class="divide-y divide-gray-100"></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
 
     <script>
         const API_URL = "http://127.0.0.1:8000";
+        const auditLog = [];
+
+        function showPage(page) {
+            document.getElementById('pageDashboard').classList.add('hidden');
+            document.getElementById('pageAudit').classList.add('hidden');
+            document.getElementById('navDashboard').classList.remove('border-b-2', 'border-white');
+            document.getElementById('navAudit').classList.remove('border-b-2', 'border-white');
+
+            if (page === 'dashboard') {
+                document.getElementById('pageDashboard').classList.remove('hidden');
+                document.getElementById('navDashboard').classList.add('border-b-2', 'border-white');
+            } else {
+                document.getElementById('pageAudit').classList.remove('hidden');
+                document.getElementById('navAudit').classList.add('border-b-2', 'border-white');
+                renderAudit();
+            }
+        }
+
+        function renderAudit() {
+            const tbody = document.getElementById('auditTable');
+            if (auditLog.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-400 italic">Hozircha amaliyotlar yo'q</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = auditLog.map(log => `
+                <tr class="hover:bg-gray-50">
+                    <td class="p-3 font-mono text-xs text-gray-500">${log.id}</td>
+                    <td class="p-3">${log.filename}</td>
+                    <td class="p-3"><span class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">${log.tur}</span></td>
+                    <td class="p-3"><span class="text-xs font-bold ${log.risk === 'high' ? 'text-red-600' : log.risk === 'medium' ? 'text-yellow-600' : 'text-green-600'}">${log.risk.toUpperCase()}</span></td>
+                    <td class="p-3">
+                        <span class="text-xs px-2 py-0.5 rounded ${log.status === 'approved' ? 'bg-green-100 text-green-800' : log.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}">
+                            ${log.status === 'approved' ? 'Tasdiqlangan' : log.status === 'rejected' ? 'Rad etilgan' : 'Kutilmoqda'}
+                        </span>
+                    </td>
+                    <td class="p-3 text-xs text-gray-500">${new Date(log.created_at).toLocaleString()}</td>
+                    <td class="p-3 text-xs text-gray-500">${log.approved_at ? new Date(log.approved_at).toLocaleString() : '—'}</td>
+                </tr>
+            `).join('');
+        }
 
         async function fetchRequests() {
             const res = await fetch(`${API_URL}/requests`);
             const data = await res.json();
             const container = document.getElementById('requestsList');
 
+            // Update stats
+            document.getElementById('statTotal').textContent = data.length;
+            document.getElementById('statPending').textContent = data.filter(r => r.status === 'pending').length;
+            document.getElementById('statApproved').textContent = data.filter(r => r.status === 'approved').length;
+            document.getElementById('statRejected').textContent = data.filter(r => r.status === 'rejected').length;
+
+            // Update audit log
+            auditLog.length = 0;
+            data.forEach(req => auditLog.push({
+                id: req.id,
+                filename: req.filename,
+                tur: req.classification.tur,
+                risk: req.classification.risk,
+                status: req.status,
+                created_at: req.created_at,
+                approved_at: req.approved_at
+            }));
+
             if (data.length === 0) {
                 container.innerHTML = `<p class="text-gray-500 italic">Hozircha murojaatlar yo'q...</p>`;
                 return;
             }
 
-            // Reverse to show newest first
             container.innerHTML = data.reverse().map(req => {
                 const isApproved = req.status === 'approved';
                 const isRejected = req.status === 'rejected';
 
-                let statusBadge = `<span class="bg-yellow-100 text-yellow-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded border border-yellow-300">Kutilmoqda</span>`;
-                if (isApproved) statusBadge = `<span class="bg-green-100 text-green-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded border border-green-300">Tasdiqlangan</span>`;
-                if (isRejected) statusBadge = `<span class="bg-red-100 text-red-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded border border-red-300">Rad etilgan</span>`;
+                let statusBadge = `<span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded border border-yellow-300">Kutilmoqda</span>`;
+                if (isApproved) statusBadge = `<span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded border border-green-300">Tasdiqlangan</span>`;
+                if (isRejected) statusBadge = `<span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded border border-red-300">Rad etilgan</span>`;
 
-                // Convert markdown newlines to HTML breaks for the draft
-                // This converts the newlines and makes the **text** bold
-const formattedDraft = req.draft_response
-    .replace(/\n/g, '<br>')
-    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+                const formattedDraft = req.draft_response
+                    .replace(/\n/g, '<br>')
+                    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
 
                 return `
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -78,6 +182,7 @@ const formattedDraft = req.draft_response
                                 <span>🏢 Tur: <b>${req.classification.tur.toUpperCase()}</b></span>
                                 <span>⏳ Muddat: <b>${req.classification.muddat_kun} kun</b></span>
                                 <span class="${req.classification.risk === 'high' ? 'text-red-600 font-bold' : ''}">⚠️ Risk: ${req.classification.risk}</span>
+                                <span class="text-gray-400">🕐 ${new Date(req.created_at).toLocaleString()}</span>
                             </div>
                         </div>
                         <div>${statusBadge}</div>
@@ -88,22 +193,25 @@ const formattedDraft = req.draft_response
                             <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Asl Murojaat (Qisqacha)</h4>
                             <p class="text-sm text-gray-700 whitespace-pre-wrap">${req.text.substring(0, 300)}...</p>
                         </div>
-
-                        <div class="bg-blue-50 p-4 rounded border border-blue-200 relative group">
+                        <div class="bg-blue-50 p-4 rounded border border-blue-200">
                             <h4 class="text-xs font-bold text-blue-800 uppercase tracking-wider mb-2 flex justify-between">
                                 AI Javob Loyihasi
                                 <button onclick="navigator.clipboard.writeText(\`${req.draft_response}\`)" class="text-blue-600 hover:text-blue-800 transition">📋 Nusxa Olish</button>
                             </h4>
-                            <p class="text-sm text-gray-800 whitespace-pre-wrap h-40 overflow-y-auto pr-2">${formattedDraft}</p>
+                            <p class="text-sm text-gray-800 h-40 overflow-y-auto pr-2">${formattedDraft}</p>
                         </div>
                     </div>
 
                     ${req.status === 'pending' ? `
                     <div class="p-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
-                        <button onclick="updateStatus('${req.id}', 'reject')" class="px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 focus:ring-4 focus:ring-red-100 transition">Rad etish (Inson)</button>
-                        <button onclick="updateStatus('${req.id}', 'approve')" class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:ring-green-300 transition">Tasdiqlash & Yuborish</button>
+                        <button onclick="updateStatus('${req.id}', 'reject')" class="px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 transition">Rad etish</button>
+                        <button onclick="updateStatus('${req.id}', 'approve')" class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition">✅ Tasdiqlash & Yuborish</button>
                     </div>
-                    ` : ''}
+                    ` : `
+                    <div class="p-4 border-t border-gray-200 bg-gray-50 text-xs text-gray-400 text-right">
+                        ${req.approved_at ? `Amal bajarilgan: ${new Date(req.approved_at).toLocaleString()}` : ''}
+                    </div>
+                    `}
                 </div>
                 `;
             }).join('');
@@ -117,19 +225,18 @@ const formattedDraft = req.draft_response
             formData.append('file', fileInput.files[0]);
 
             const btn = document.getElementById('uploadBtn');
-            const originalText = btn.innerText;
             btn.innerText = "⏳ Tahlil qilinmoqda...";
             btn.disabled = true;
             btn.classList.add('opacity-50');
 
             try {
                 await fetch(`${API_URL}/upload`, { method: 'POST', body: formData });
-                fileInput.value = ""; // Reset input
+                fileInput.value = "";
                 fetchRequests();
             } catch (err) {
                 alert("Xatolik yuz berdi!");
             } finally {
-                btn.innerText = originalText;
+                btn.innerText = "+ Fayl Yuklash";
                 btn.disabled = false;
                 btn.classList.remove('opacity-50');
             }
@@ -140,8 +247,8 @@ const formattedDraft = req.draft_response
             fetchRequests();
         }
 
-        // Initial load
         fetchRequests();
+        setInterval(fetchRequests, 10000);
     </script>
 </body>
 </html>
