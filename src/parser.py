@@ -1,8 +1,3 @@
-"""
-parser.py  –  PDF va DOCX fayllardan matn ajratish
-Bytes-based: temp fayl ishlatilmaydi, faylni yopish muammolari yo'q.
-SQB Legal AI v3.0
-"""
 import re
 import io
 import logging
@@ -12,7 +7,6 @@ logger = logging.getLogger(__name__)
 
 
 def _clean(text: str) -> str:
-    """Remove excessive whitespace while preserving paragraph breaks."""
     text = re.sub(r"\r\n", "\n", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
     text = re.sub(r"[ \t]+", " ", text)
@@ -22,11 +16,6 @@ def _clean(text: str) -> str:
 
 
 def extract_text_from_bytes(data: bytes, suffix: str) -> str:
-    """
-    Extract text from raw file bytes.
-    suffix: '.pdf' or '.docx'
-    No temp files — everything in memory.
-    """
     suffix = suffix.lower()
     if suffix == ".pdf":
         return _extract_pdf_bytes(data)
@@ -39,7 +28,6 @@ def extract_text_from_bytes(data: bytes, suffix: str) -> str:
 
 
 def extract_text(file_path: str) -> str:
-    """Backward-compatible wrapper: reads file then calls extract_text_from_bytes."""
     path = Path(file_path)
     data = path.read_bytes()
     return extract_text_from_bytes(data, path.suffix)
@@ -53,7 +41,6 @@ def _extract_pdf_bytes(data: bytes) -> str:
             "PyMuPDF o'rnatilmagan. Bajaring: pip install pymupdf"
         )
 
-    # Open from bytes stream — no file path involved
     doc = fitz.open(stream=data, filetype="pdf")
     parts: list[str] = []
 

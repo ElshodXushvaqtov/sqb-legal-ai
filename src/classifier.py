@@ -30,9 +30,9 @@ def _get_client() -> genai.Client:
     return _client
 
 
-# gemini-2.5-flash: works on free tier, smarter than 2.0-flash
+
 MODEL          = os.getenv("CLASSIFIER_MODEL", "gemini-2.0-flash-lite")
-FALLBACK_MODEL = os.getenv("CLASSIFIER_FALLBACK", "gemini-2.0-flash")
+FALLBACK_MODEL = os.getenv("CLASSIFIER_FALLBACK", "gemini-2.0-flash-lite")
 
 # ── Lex.uz law → link map ──────────────────────────────────────────────────
 LEX_LINKS: dict[str, str] = {
@@ -109,7 +109,7 @@ def _parse_json(raw: str) -> dict:
     """
     raw = raw.strip()
 
-    # Strip markdown fences
+
     if "```" in raw:
         for chunk in raw.split("```"):
             s = chunk.lstrip("json").strip()
@@ -122,15 +122,15 @@ def _parse_json(raw: str) -> dict:
         raise ValueError("JSON obyekti topilmadi")
     raw = raw[start:]
 
-    # Try parsing as-is first
+
     try:
         return json.loads(raw)
     except json.JSONDecodeError:
         pass
 
-    # Repair: scan backwards from last comma to find last complete key:value pair
+
     cleaned = raw.rstrip()
-    # Try progressively shorter suffixes at natural break points (after , or after closing " ] })
+
     import re
     break_points = [m.end() for m in re.finditer(r'(?:,|\]|\}|")', cleaned)]
     for bp in reversed(break_points):

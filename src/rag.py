@@ -76,7 +76,6 @@ def _call_gemini(prompt: str, system: str = "", max_tokens: int = 2500, retries:
         thinking_config=types.ThinkingConfig(thinking_budget=512),
     )
 
-    # Try primary model first, then fallback
     models_to_try = [GENERATION_MODEL, FALLBACK_MODEL]
 
     for model in models_to_try:

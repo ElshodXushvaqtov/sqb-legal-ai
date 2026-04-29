@@ -144,7 +144,7 @@ async def upload_document(file: UploadFile = File(...)):
 
     suffix = Path(file.filename).suffix.lower()
     try:
-        # Pass raw bytes in-memory — no temp file, avoids all file-handle issues
+
         text = extract_text_from_bytes(content, suffix)
     except Exception as e:
         logger.error(f"Matn ajratish xatosi ({file.filename}): {e}")

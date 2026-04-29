@@ -440,7 +440,7 @@ const API = "http://127.0.0.1:8000";
 let allRequests = [];
 let activeFilter = 'all';
 
-/* ─── TOAST ─── */
+
 function toast(msg, type = 'info') {
     const tc = document.getElementById('toastContainer');
     const t = document.createElement('div');
@@ -451,13 +451,13 @@ function toast(msg, type = 'info') {
     setTimeout(() => t.remove(), 3500);
 }
 
-/* ─── PROGRESS ─── */
+
 function setProgress(pct) {
     document.getElementById('progressBar').style.width = pct + '%';
     if (pct >= 100) setTimeout(() => setProgress(0), 500);
 }
 
-/* ─── NAV ─── */
+
 function showPage(page) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
@@ -466,7 +466,7 @@ function showPage(page) {
     if (page === 'audit') renderAudit();
 }
 
-/* ─── FILTER ─── */
+
 function setFilter(f, btn) {
     activeFilter = f;
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -474,7 +474,7 @@ function setFilter(f, btn) {
     renderRequests();
 }
 
-/* ─── BADGE HELPERS ─── */
+
 function riskBadge(r) {
     const map = { high: 'badge-risk-high', medium: 'badge-risk-medium', low: 'badge-risk-low' };
     return `<span class="badge ${map[r] || 'badge-risk-low'}">${(r || 'low').toUpperCase()}</span>`;
@@ -500,7 +500,7 @@ function confidenceColor(n) {
     return 'color:var(--red)';
 }
 
-/* ─── COMPLIANCE BANNER ─── */
+
 function complianceBanner(c) {
     if (!c) return '';
     if (c.muvofiq) {
@@ -524,7 +524,7 @@ function complianceBanner(c) {
     }
 }
 
-/* ─── RENDER REQUESTS ─── */
+
 function renderRequests() {
     const list = document.getElementById('requestsList');
     let items = [...allRequests];
@@ -551,7 +551,7 @@ function renderRequests() {
             .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
         const rawText = req.edited_response || req.draft_response || '';
 
-        // ── FIX: use text_preview (backend field name) ──
+
         const previewText = (req.text_preview || '');
         const previewDisplay = previewText
             ? previewText.substring(0, 500) + (previewText.length > 500 ? '…' : '')
@@ -635,7 +635,7 @@ function renderRequests() {
     }).join('');
 }
 
-/* ─── RENDER AUDIT ─── */
+
 function renderAudit() {
     const tbody = document.getElementById('auditBody');
     document.getElementById('auditCount').textContent = allRequests.length + ' ta yozuv';

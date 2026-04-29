@@ -1,0 +1,37 @@
+[
+  {
+    "id": "45abe3df",
+    "filename": "test_long_prokuratura.pdf",
+    "text_preview": "O'ZBEKISTON RESPUBLIKASI BOSH PROKURATURASI\n\nIqtisodiy jinoyatlar va korrupsiyaga qarshi kurash boshqarmasi\n\nToshkent shahri, Yunusobod tumani, Amir Temur shoh ko'chasi, 56-uy\n\nTel: +998 71 233-XX-XX | Faks: +998 71 233-XX-XX\n\n \n\nSQB (Sanoat Qurilish Bank) Aksiyadorlik Jamiyati\n\nBoshqaruv raisi janob Ergashev Akbar Akbarovich ga\n\nYuridik manzil: Toshkent sh., Shayxontohur t., Navoiy ko'chasi, 16-uy\n\n \n\nRASMIY TALAB-XATI\n\nRaqami: BP-IJ-2024/KR-8847\n\nSana: 2024-yil 28-noyabr\n\nMaxfiylik darajasi: DSP (Rasmiy foydalanish uchun)\n\n \n\nHUQUQIY ASOS:\n\nO'zbekiston Respublikasi Jinoyat-protsessual kodeksining 178, 180, 214-moddalari,\n\nO'zbekiston Respublikasi 'Pul yuvishga va terrorizmni moliyalashtirishga\n\nqarshi kurash togrisida'gi Qonunning 12, 15-moddalari,\n\nO'zbekiston Respublikasi 'Bank siri togrisida'gi Qonunning 5-moddasi asosida\n\n \n\nJINOIY ISH HAQIDA MA'LUMOT:\n\nJinoiy ish raqami: 14-2024-IJ/KR-332\n\nOchilgan sana: 2024-yil 1-oktyabr\n\nJinoyat turi: Pul mablaglarini yuvish (O'zR JK 243-modd",
+    "full_text_length": 4177,
+    "classification": {
+      "tur": "boshqa",
+      "mavzu": "Tahlil qilinmadi",
+      "muddat_kun": 10,
+      "risk": "medium",
+      "kalit_sozlar": [],
+      "ishonch_darajasi": 0,
+      "organ_nomi": "",
+      "maqsad": "boshqa",
+      "til": "uz"
+    },
+    "draft_response": "[TEXNIK XATOLIK: Javob generatsiyasida muammo yuz berdi]\n\nXato: Barcha modellar va urinishlar tugadi. Keyinroq qayta urinib ko'ring.\n\nIltimos, tizim ma'muriga murojaat qiling yoki keyinroq qayta urinib ko'ring.",
+    "compliance": {
+      "muvofiq": true,
+      "xavf_darajasi": "low",
+      "ball": 70,
+      "muammolar": [],
+      "tavsiyalar": [],
+      "qonunlar": [],
+      "xulosa": "Tekshiruv bajarildi",
+      "bank_siri_buzilishimi": false
+    },
+    "status": "pending",
+    "created_at": "2026-04-29T23:50:02.204398",
+    "approved_at": null,
+    "rejected_at": null,
+    "edited_response": null,
+    "editor_note": null,
+    "edited_at": null
+  }
+]
