@@ -3,302 +3,746 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SQB Legal AI | Operator Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>SQB Legal AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --navy: #0a1628;
+            --navy-mid: #112240;
+            --navy-light: #1a3460;
+            --gold: #c9a84c;
+            --gold-light: #e4c77b;
+            --gold-dim: #7d6530;
+            --cream: #f5f0e8;
+            --cream-dark: #e8e0d0;
+            --text-main: #1a1a2e;
+            --text-muted: #6b6b80;
+            --red: #c0392b;
+            --red-light: #fdecea;
+            --green: #1a6b45;
+            --green-light: #e8f5ee;
+            --yellow: #8a6500;
+            --yellow-light: #fefbe8;
+            --border: #d8d0c0;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Instrument Sans', sans-serif;
+            background: var(--cream);
+            color: var(--text-main);
+            min-height: 100vh;
+        }
+
+        /* ── NAV ── */
+        nav {
+            background: var(--navy);
+            border-bottom: 1px solid var(--navy-light);
+            position: sticky; top: 0; z-index: 100;
+        }
+        .nav-inner {
+            max-width: 1200px; margin: 0 auto;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 2rem; height: 60px;
+        }
+        .nav-brand { display: flex; align-items: center; gap: 12px; }
+        .nav-logo {
+            width: 32px; height: 32px;
+            background: var(--gold);
+            border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px;
+        }
+        .nav-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.15rem; color: var(--cream); letter-spacing: 0.02em;
+        }
+        .nav-subtitle {
+            font-size: 0.7rem; color: var(--gold-dim);
+            letter-spacing: 0.08em; text-transform: uppercase;
+        }
+        .nav-tabs { display: flex; gap: 0; }
+        .nav-tab {
+            background: none; border: none; cursor: pointer;
+            color: rgba(245,240,232,0.5);
+            font-family: 'Instrument Sans', sans-serif;
+            font-size: 0.8rem; font-weight: 500;
+            letter-spacing: 0.06em; text-transform: uppercase;
+            padding: 0 1.25rem; height: 60px;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .nav-tab:hover { color: var(--cream); }
+        .nav-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+        .nav-status {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 0.72rem; color: rgba(245,240,232,0.4); letter-spacing: 0.04em;
+        }
+        .status-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: #2ecc71; animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+        /* ── PAGES ── */
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* ── MAIN LAYOUT ── */
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+        /* ── STAT CARDS ── */
+        .stats-row {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: white; border: 1px solid var(--border);
+            border-radius: 10px; padding: 1.25rem 1.5rem;
+            position: relative; overflow: hidden;
+        }
+        .stat-card::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+        }
+        .stat-card.total::before  { background: var(--navy); }
+        .stat-card.pending::before { background: var(--yellow); }
+        .stat-card.approved::before { background: var(--green); }
+        .stat-card.rejected::before { background: var(--red); }
+        .stat-label {
+            font-size: 0.68rem; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.1em;
+            color: var(--text-muted); margin-bottom: 6px;
+        }
+        .stat-value {
+            font-family: 'DM Mono', monospace; font-size: 2rem; font-weight: 500; line-height: 1;
+        }
+        .stat-card.total .stat-value   { color: var(--navy); }
+        .stat-card.pending .stat-value  { color: var(--yellow); }
+        .stat-card.approved .stat-value { color: var(--green); }
+        .stat-card.rejected .stat-value { color: var(--red); }
+
+        /* ── UPLOAD ZONE ── */
+        .upload-zone {
+            background: var(--navy); border-radius: 12px; padding: 2rem 2.5rem;
+            margin-bottom: 2rem;
+            display: flex; align-items: center; justify-content: space-between; gap: 2rem;
+        }
+        .upload-info h2 {
+            font-family: 'DM Serif Display', serif; font-size: 1.2rem; color: var(--cream); margin-bottom: 4px;
+        }
+        .upload-info p { font-size: 0.78rem; color: rgba(245,240,232,0.45); }
+        .upload-meta { display: flex; gap: 1rem; margin-top: 8px; }
+        .upload-meta span {
+            font-size: 0.7rem; color: var(--gold-dim); letter-spacing: 0.04em;
+            background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.2);
+            border-radius: 4px; padding: 2px 8px;
+        }
+        .upload-btn {
+            background: var(--gold); border: none; cursor: pointer;
+            color: var(--navy); font-family: 'Instrument Sans', sans-serif;
+            font-weight: 600; font-size: 0.82rem; letter-spacing: 0.04em;
+            padding: 0.7rem 1.8rem; border-radius: 8px; white-space: nowrap;
+            transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+        }
+        .upload-btn:hover { background: var(--gold-light); transform: translateY(-1px); }
+        .upload-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .upload-btn .spinner {
+            width: 14px; height: 14px;
+            border: 2px solid rgba(10,22,40,0.3); border-top-color: var(--navy);
+            border-radius: 50%; animation: spin 0.7s linear infinite; display: none;
+        }
+        .upload-btn.loading .spinner { display: block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── SECTION HEADER ── */
+        .section-header {
+            display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;
+        }
+        .section-title { font-family: 'DM Serif Display', serif; font-size: 1.05rem; color: var(--text-main); }
+        .section-count {
+            font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--text-muted);
+            background: var(--cream-dark); border-radius: 20px; padding: 3px 10px;
+        }
+
+        /* ── FILTER BAR ── */
+        .filter-bar { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+        .filter-btn {
+            background: white; border: 1px solid var(--border);
+            font-family: 'Instrument Sans', sans-serif; font-size: 0.72rem; font-weight: 500;
+            letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-muted);
+            padding: 6px 14px; border-radius: 6px; cursor: pointer; transition: all 0.15s;
+        }
+        .filter-btn:hover { border-color: var(--navy); color: var(--navy); }
+        .filter-btn.active { background: var(--navy); border-color: var(--navy); color: var(--cream); }
+
+        /* ── REQUEST CARD ── */
+        .request-card {
+            background: white; border: 1px solid var(--border); border-radius: 12px;
+            margin-bottom: 1.25rem; overflow: hidden; animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .card-header {
+            padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--cream-dark);
+            display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem;
+        }
+        .card-title { font-family: 'DM Serif Display', serif; font-size: 1rem; color: var(--text-main); margin-bottom: 6px; }
+        .card-meta { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+        .meta-item { display: flex; align-items: center; gap: 5px; font-size: 0.72rem; color: var(--text-muted); }
+        .meta-item .label { font-weight: 600; color: var(--text-main); }
+
+        .badge {
+            display: inline-block; font-size: 0.65rem; font-weight: 600;
+            letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px;
+        }
+        .badge-type      { background: #e8eaf6; color: #3949ab; }
+        .badge-risk-high   { background: #fdecea; color: var(--red); }
+        .badge-risk-medium { background: var(--yellow-light); color: var(--yellow); }
+        .badge-risk-low    { background: var(--green-light); color: var(--green); }
+        .badge-pending  { background: var(--yellow-light); color: var(--yellow); border: 1px solid #e6c800; }
+        .badge-approved { background: var(--green-light);  color: var(--green);  border: 1px solid #b7d9c5; }
+        .badge-rejected { background: var(--red-light);    color: var(--red);    border: 1px solid #f0b8b3; }
+        .badge-compliant    { background: var(--green-light); color: var(--green); border: 1px solid #b7d9c5; }
+        .badge-noncompliant { background: var(--red-light);   color: var(--red);   border: 1px solid #f0b8b3; }
+
+        /* ── COMPLIANCE BANNER ── */
+        .compliance-banner { padding: 0.9rem 1.5rem; border-bottom: 1px solid; }
+        .compliance-banner.ok   { background: var(--green-light); border-color: #c0dece; }
+        .compliance-banner.fail { background: var(--red-light);   border-color: #f0c0bb; }
+        .compliance-banner p { font-size: 0.78rem; font-weight: 600; margin-bottom: 6px; }
+        .compliance-banner.ok p   { color: var(--green); }
+        .compliance-banner.fail p { color: var(--red); }
+        .law-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .law-tag {
+            font-size: 0.68rem; background: white; border: 1px solid var(--border);
+            border-radius: 4px; padding: 3px 9px; color: var(--navy); text-decoration: none; transition: all 0.15s;
+        }
+        .law-tag:hover { background: var(--navy); color: var(--cream); border-color: var(--navy); }
+        .issue-list, .tip-list { list-style: none; margin-top: 6px; }
+        .issue-list li, .tip-list li { font-size: 0.73rem; padding: 2px 0; padding-left: 14px; position: relative; }
+        .issue-list li::before { content: '↳'; position: absolute; left: 0; color: var(--red); }
+        .tip-list li::before  { content: '→'; position: absolute; left: 0; color: #3949ab; }
+        .tip-list { color: #3949ab; margin-top: 8px; }
+
+        /* ── BODY GRID ── */
+        .card-body { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+        .card-panel { padding: 1.25rem 1.5rem; }
+        .card-panel + .card-panel { border-left: 1px solid var(--cream-dark); }
+        .panel-label {
+            font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em;
+            color: var(--text-muted); margin-bottom: 10px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .panel-text {
+            font-size: 0.8rem; line-height: 1.65; color: #444;
+            max-height: 160px; overflow-y: auto; white-space: pre-wrap;
+        }
+        .panel-text::-webkit-scrollbar { width: 4px; }
+        .panel-text::-webkit-scrollbar-thumb { background: var(--cream-dark); border-radius: 2px; }
+        /* Empty state for panel */
+        .panel-empty {
+            font-size: 0.75rem; color: var(--text-muted);
+            font-style: italic; padding: 0.5rem 0;
+        }
+
+        textarea.draft-edit {
+            width: 100%; height: 160px;
+            font-family: 'Instrument Sans', sans-serif; font-size: 0.8rem; line-height: 1.65;
+            border: 1px solid var(--border); border-radius: 6px; padding: 0.6rem; resize: vertical;
+            background: var(--cream); color: var(--text-main); outline: none; transition: border-color 0.15s;
+        }
+        textarea.draft-edit:focus { border-color: var(--navy); background: white; }
+        .save-btn {
+            margin-top: 6px; background: none; border: 1px solid var(--border);
+            color: var(--text-muted); cursor: pointer; font-family: 'Instrument Sans', sans-serif;
+            font-size: 0.7rem; padding: 4px 12px; border-radius: 4px; transition: all 0.15s;
+        }
+        .save-btn:hover { border-color: var(--navy); color: var(--navy); }
+
+        /* ── CARD FOOTER ── */
+        .card-footer {
+            padding: 0.9rem 1.5rem; border-top: 1px solid var(--cream-dark); background: #fafaf8;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .footer-warn { font-size: 0.7rem; color: var(--text-muted); display: flex; gap: 12px; }
+        .footer-warn span { display: flex; align-items: center; gap: 4px; }
+        .action-btns { display: flex; gap: 0.6rem; }
+        .btn-reject {
+            background: none; border: 1px solid #e8c0bd; color: var(--red); cursor: pointer;
+            font-family: 'Instrument Sans', sans-serif; font-size: 0.78rem; font-weight: 500;
+            padding: 8px 18px; border-radius: 7px; transition: all 0.15s;
+        }
+        .btn-reject:hover { background: var(--red-light); }
+        .btn-approve {
+            background: var(--navy); border: 1px solid var(--navy); color: var(--cream); cursor: pointer;
+            font-family: 'Instrument Sans', sans-serif; font-size: 0.78rem; font-weight: 600;
+            padding: 8px 22px; border-radius: 7px; transition: all 0.2s;
+        }
+        .btn-approve:hover { background: var(--navy-light); }
+        .footer-done { font-size: 0.72rem; color: var(--text-muted); font-family: 'DM Mono', monospace; }
+
+        /* ── EMPTY STATE ── */
+        .empty-state { text-align: center; padding: 5rem 2rem; }
+        .empty-icon  { font-size: 3rem; margin-bottom: 1rem; opacity: 0.3; }
+        .empty-state h3 { font-family: 'DM Serif Display', serif; font-size: 1.1rem; color: var(--text-muted); margin-bottom: 6px; }
+        .empty-state p  { font-size: 0.8rem; color: var(--text-muted); }
+
+        /* ── TOAST ── */
+        .toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 999; display: flex; flex-direction: column; gap: 0.5rem; }
+        .toast {
+            background: var(--navy); color: var(--cream); font-size: 0.78rem; padding: 0.7rem 1rem;
+            border-radius: 8px; border-left: 3px solid var(--gold); animation: toastIn 0.3s ease; max-width: 300px;
+        }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* ── AUDIT TABLE ── */
+        .audit-table-wrap { background: white; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; }
+        thead { background: var(--navy); }
+        thead th {
+            padding: 0.9rem 1rem; text-align: left; font-size: 0.65rem; font-weight: 600;
+            letter-spacing: 0.09em; text-transform: uppercase; color: rgba(245,240,232,0.6);
+        }
+        tbody tr { border-bottom: 1px solid var(--cream-dark); transition: background 0.1s; }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: var(--cream); }
+        tbody td { padding: 0.8rem 1rem; font-size: 0.78rem; color: var(--text-main); }
+        .mono { font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--text-muted); }
+
+        /* ── PROGRESS BAR ── */
+        .progress-bar { height: 3px; background: var(--gold); position: fixed; top: 60px; left: 0; z-index: 200; width: 0%; transition: width 0.4s ease; }
+
+        /* ── DEADLINE INDICATOR ── */
+        .deadline-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 0.68rem; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+        .deadline-urgent { background: #fdecea; color: var(--red); }
+        .deadline-soon   { background: var(--yellow-light); color: var(--yellow); }
+        .deadline-ok     { background: var(--green-light); color: var(--green); }
+
+        @media (max-width: 768px) {
+            .stats-row { grid-template-columns: 1fr 1fr; }
+            .card-body { grid-template-columns: 1fr; }
+            .card-panel + .card-panel { border-left: none; border-top: 1px solid var(--cream-dark); }
+            .upload-zone { flex-direction: column; align-items: flex-start; }
+            .nav-status { display: none; }
+        }
+    </style>
 </head>
-<body class="text-gray-800 bg-gray-100">
+<body>
 
-    <nav class="bg-blue-900 text-white p-4 shadow-md">
-        <div class="max-w-6xl mx-auto flex justify-between items-center">
-            <div class="text-xl font-bold tracking-wider">🏦 SQB Legal AI</div>
-            <div class="flex gap-4 text-sm">
-                <button onclick="showPage('dashboard')" id="navDashboard" class="hover:text-blue-300 font-semibold border-b-2 border-white pb-1">Dashboard</button>
-                <button onclick="showPage('audit')" id="navAudit" class="hover:text-blue-300">Audit Trail</button>
+<div class="progress-bar" id="progressBar"></div>
+<div class="toast-container" id="toastContainer"></div>
+
+<nav>
+    <div class="nav-inner">
+        <div class="nav-brand">
+            <div class="nav-logo">⚖</div>
+            <div>
+                <div class="nav-title">SQB Legal AI</div>
+                <div class="nav-subtitle">Yuridik Murojaatlar Tizimi</div>
             </div>
-            <div class="text-sm">Yuridik Murojaatlarni Boshqarish Tizimi</div>
         </div>
-    </nav>
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showPage('dashboard')" id="tabDashboard">Dashboard</button>
+            <button class="nav-tab" onclick="showPage('audit')" id="tabAudit">Audit Trail</button>
+        </div>
+        <div class="nav-status">
+            <div class="status-dot"></div>
+            <span>Tizim faol</span>
+        </div>
+    </div>
+</nav>
 
-    <!-- DASHBOARD PAGE -->
-    <div id="pageDashboard">
-        <main class="max-w-6xl mx-auto mt-8 p-4">
+<!-- DASHBOARD -->
+<div id="pageDashboard" class="page active">
+<div class="container">
 
-            <!-- STATS -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-center">
-                    <div id="statTotal" class="text-3xl font-bold text-blue-900">0</div>
-                    <div class="text-xs text-gray-500 mt-1">Jami Murojaatlar</div>
-                </div>
-                <div class="bg-white rounded-lg shadow-sm border border-yellow-200 p-4 text-center">
-                    <div id="statPending" class="text-3xl font-bold text-yellow-600">0</div>
-                    <div class="text-xs text-gray-500 mt-1">Kutilmoqda</div>
-                </div>
-                <div class="bg-white rounded-lg shadow-sm border border-green-200 p-4 text-center">
-                    <div id="statApproved" class="text-3xl font-bold text-green-600">0</div>
-                    <div class="text-xs text-gray-500 mt-1">Tasdiqlangan</div>
-                </div>
-                <div class="bg-white rounded-lg shadow-sm border border-red-200 p-4 text-center">
-                    <div id="statRejected" class="text-3xl font-bold text-red-600">0</div>
-                    <div class="text-xs text-gray-500 mt-1">Rad etilgan</div>
-                </div>
-            </div>
-
-            <!-- UPLOAD -->
-            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 mb-8 flex justify-between items-center">
-                <div>
-                    <h2 class="text-lg font-semibold text-blue-900">Yangi murojaat yuklash</h2>
-                    <p class="text-sm text-gray-500">Prokuratura, soliq yoki MB so'rovlarini (PDF/DOCX) yuklang.</p>
-                </div>
-                <div>
-                    <input type="file" id="fileInput" class="hidden" onchange="uploadFile()">
-                    <button id="uploadBtn" onclick="document.getElementById('fileInput').click()"
-                        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded shadow transition">
-                        + Fayl Yuklash
-                    </button>
-                </div>
-            </div>
-
-            <h2 class="text-xl font-bold text-gray-700 mb-4">So'nggi Murojaatlar</h2>
-            <div id="requestsList" class="space-y-6"></div>
-        </main>
+    <div class="stats-row">
+        <div class="stat-card total">
+            <div class="stat-label">Jami Murojaatlar</div>
+            <div class="stat-value" id="statTotal">0</div>
+        </div>
+        <div class="stat-card pending">
+            <div class="stat-label">Kutilmoqda</div>
+            <div class="stat-value" id="statPending">0</div>
+        </div>
+        <div class="stat-card approved">
+            <div class="stat-label">Tasdiqlangan</div>
+            <div class="stat-value" id="statApproved">0</div>
+        </div>
+        <div class="stat-card rejected">
+            <div class="stat-label">Rad etilgan</div>
+            <div class="stat-value" id="statRejected">0</div>
+        </div>
     </div>
 
-    <!-- AUDIT PAGE -->
-    <div id="pageAudit" class="hidden">
-        <main class="max-w-6xl mx-auto mt-8 p-4">
-            <h2 class="text-xl font-bold text-gray-700 mb-4">📋 Audit Trail</h2>
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                <table class="w-full text-sm">
-                    <thead class="bg-blue-900 text-white">
-                        <tr>
-                            <th class="p-3 text-left">ID</th>
-                            <th class="p-3 text-left">Fayl</th>
-                            <th class="p-3 text-left">Tur</th>
-                            <th class="p-3 text-left">Risk</th>
-                            <th class="p-3 text-left">Ishonch</th>
-                            <th class="p-3 text-left">Holat</th>
-                            <th class="p-3 text-left">Yuklangan</th>
-                            <th class="p-3 text-left">Tasdiqlangan</th>
-                        </tr>
-                    </thead>
-                    <tbody id="auditTable" class="divide-y divide-gray-100"></tbody>
-                </table>
+    <div class="upload-zone">
+        <div class="upload-info">
+            <h2>Yangi murojaat yuklash</h2>
+            <p>Prokuratura, soliq yoki Markaziy bank so'rovlarini tahlil qiling</p>
+            <div class="upload-meta">
+                <span>PDF</span><span>DOCX</span><span>Maks 10 MB</span>
             </div>
-        </main>
+        </div>
+        <input type="file" id="fileInput" accept=".pdf,.docx" onchange="uploadFile()" style="display:none">
+        <button class="upload-btn" id="uploadBtn" onclick="document.getElementById('fileInput').click()">
+            <div class="spinner"></div>
+            <span id="uploadBtnText">+ Fayl Yuklash</span>
+        </button>
     </div>
 
-    <script>
-        const API_URL = "http://127.0.0.1:8000";
-        let allRequests = [];
+    <div class="filter-bar">
+        <button class="filter-btn active" onclick="setFilter('all', this)">Barchasi</button>
+        <button class="filter-btn" onclick="setFilter('pending', this)">Kutilmoqda</button>
+        <button class="filter-btn" onclick="setFilter('approved', this)">Tasdiqlangan</button>
+        <button class="filter-btn" onclick="setFilter('rejected', this)">Rad etilgan</button>
+    </div>
 
-        function showPage(page) {
-            document.getElementById('pageDashboard').classList.add('hidden');
-            document.getElementById('pageAudit').classList.add('hidden');
-            document.getElementById('navDashboard').classList.remove('border-b-2', 'border-white');
-            document.getElementById('navAudit').classList.remove('border-b-2', 'border-white');
-            if (page === 'dashboard') {
-                document.getElementById('pageDashboard').classList.remove('hidden');
-                document.getElementById('navDashboard').classList.add('border-b-2', 'border-white');
-            } else {
-                document.getElementById('pageAudit').classList.remove('hidden');
-                document.getElementById('navAudit').classList.add('border-b-2', 'border-white');
-                renderAudit();
-            }
-        }
+    <div class="section-header">
+        <div class="section-title">So'nggi Murojaatlar</div>
+        <div class="section-count" id="listCount">0 ta</div>
+    </div>
 
-        function renderAudit() {
-            const tbody = document.getElementById('auditTable');
-            if (allRequests.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-gray-400 italic">Hozircha amaliyotlar yo'q</td></tr>`;
-                return;
-            }
-            tbody.innerHTML = allRequests.map(req => `
-                <tr class="hover:bg-gray-50">
-                    <td class="p-3 font-mono text-xs text-gray-500">${req.id}</td>
-                    <td class="p-3">${req.filename}</td>
-                    <td class="p-3"><span class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded">${req.classification.tur}</span></td>
-                    <td class="p-3"><span class="text-xs font-bold ${req.classification.risk === 'high' ? 'text-red-600' : req.classification.risk === 'medium' ? 'text-yellow-600' : 'text-green-600'}">${req.classification.risk.toUpperCase()}</span></td>
-                    <td class="p-3"><span class="text-xs font-bold ${(req.classification.ishonch_darajasi || 0) >= 80 ? 'text-green-600' : 'text-yellow-600'}">${req.classification.ishonch_darajasi || '?'}%</span></td>
-                    <td class="p-3"><span class="text-xs px-2 py-0.5 rounded ${req.status === 'approved' ? 'bg-green-100 text-green-800' : req.status === 'rejected' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}">${req.status === 'approved' ? 'Tasdiqlangan' : req.status === 'rejected' ? 'Rad etilgan' : 'Kutilmoqda'}</span></td>
-                    <td class="p-3 text-xs text-gray-500">${new Date(req.created_at).toLocaleString()}</td>
-                    <td class="p-3 text-xs text-gray-500">${req.approved_at ? new Date(req.approved_at).toLocaleString() : '—'}</td>
+    <div id="requestsList"></div>
+</div>
+</div>
+
+<!-- AUDIT -->
+<div id="pageAudit" class="page">
+<div class="container">
+    <div class="section-header" style="margin-bottom:1.5rem">
+        <div class="section-title">Audit Trail</div>
+        <div class="section-count" id="auditCount">0 ta yozuv</div>
+    </div>
+    <div class="audit-table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Fayl nomi</th>
+                    <th>Tur</th>
+                    <th>Risk</th>
+                    <th>Ishonch</th>
+                    <th>Muddat</th>
+                    <th>Holat</th>
+                    <th>Yuklangan</th>
+                    <th>Bajarilgan</th>
                 </tr>
-            `).join('');
-        }
+            </thead>
+            <tbody id="auditBody"></tbody>
+        </table>
+    </div>
+</div>
+</div>
 
-        function getConfidenceColor(score) {
-            if (!score) return 'text-gray-400';
-            if (score >= 80) return 'text-green-600';
-            if (score >= 60) return 'text-yellow-600';
-            return 'text-red-600';
-        }
+<script>
+const API = "http://127.0.0.1:8000";
+let allRequests = [];
+let activeFilter = 'all';
 
-        function getComplianceBadge(compliance) {
-            if (!compliance) return '';
-            if (compliance.muvofiq) {
-                return `<span class="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded border border-green-300">✅ Qonunchilikka mos</span>`;
-            } else {
-                return `<span class="bg-red-100 text-red-800 text-xs px-2 py-0.5 rounded border border-red-300">⚠️ Muammo aniqlandi</span>`;
-            }
-        }
+/* ─── TOAST ─── */
+function toast(msg, type = 'info') {
+    const tc = document.getElementById('toastContainer');
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.style.borderLeftColor = type === 'success' ? '#1a6b45' : type === 'error' ? '#c0392b' : '#c9a84c';
+    t.textContent = msg;
+    tc.appendChild(t);
+    setTimeout(() => t.remove(), 3500);
+}
 
-        async function saveEdit(id) {
-            const textarea = document.getElementById(`edit-${id}`);
-            const text = textarea.value;
-            await fetch(`${API_URL}/requests/${id}/edit`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text })
-            });
-            alert("✅ Javob saqlandi!");
-        }
+/* ─── PROGRESS ─── */
+function setProgress(pct) {
+    document.getElementById('progressBar').style.width = pct + '%';
+    if (pct >= 100) setTimeout(() => setProgress(0), 500);
+}
 
-        async function fetchRequests() {
-            const res = await fetch(`${API_URL}/requests`);
-            const data = await res.json();
-            allRequests = [...data].reverse();
+/* ─── NAV ─── */
+function showPage(page) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('page' + page.charAt(0).toUpperCase() + page.slice(1)).classList.add('active');
+    document.getElementById('tab' + page.charAt(0).toUpperCase() + page.slice(1)).classList.add('active');
+    if (page === 'audit') renderAudit();
+}
 
-            document.getElementById('statTotal').textContent = data.length;
-            document.getElementById('statPending').textContent = data.filter(r => r.status === 'pending').length;
-            document.getElementById('statApproved').textContent = data.filter(r => r.status === 'approved').length;
-            document.getElementById('statRejected').textContent = data.filter(r => r.status === 'rejected').length;
+/* ─── FILTER ─── */
+function setFilter(f, btn) {
+    activeFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderRequests();
+}
 
-            const container = document.getElementById('requestsList');
-            if (data.length === 0) {
-                container.innerHTML = `<p class="text-gray-500 italic">Hozircha murojaatlar yo'q...</p>`;
-                return;
-            }
+/* ─── BADGE HELPERS ─── */
+function riskBadge(r) {
+    const map = { high: 'badge-risk-high', medium: 'badge-risk-medium', low: 'badge-risk-low' };
+    return `<span class="badge ${map[r] || 'badge-risk-low'}">${(r || 'low').toUpperCase()}</span>`;
+}
+function statusBadge(s) {
+    const map = {
+        pending:  ['badge-pending',  'Kutilmoqda'],
+        approved: ['badge-approved', 'Tasdiqlangan'],
+        rejected: ['badge-rejected', 'Rad etilgan']
+    };
+    const [cls, label] = map[s] || map.pending;
+    return `<span class="badge ${cls}">${label}</span>`;
+}
+function deadlinePill(days) {
+    if (days <= 3) return `<span class="deadline-pill deadline-urgent">⚡ ${days} kun</span>`;
+    if (days <= 7) return `<span class="deadline-pill deadline-soon">⏳ ${days} kun</span>`;
+    return `<span class="deadline-pill deadline-ok">✓ ${days} kun</span>`;
+}
+function confidenceColor(n) {
+    if (!n) return 'color:var(--text-muted)';
+    if (n >= 80) return 'color:var(--green)';
+    if (n >= 60) return 'color:var(--yellow)';
+    return 'color:var(--red)';
+}
 
-            container.innerHTML = allRequests.map(req => {
-                const isApproved = req.status === 'approved';
-                const isRejected = req.status === 'rejected';
-                const confidence = req.classification.ishonch_darajasi || 0;
-                const compliance = req.compliance;
-                const displayText = req.edited_response || req.draft_response;
+/* ─── COMPLIANCE BANNER ─── */
+function complianceBanner(c) {
+    if (!c) return '';
+    if (c.muvofiq) {
+        const laws = (c.qonunlar || []).map(q => {
+            const name = typeof q === 'object' ? q.nomi : q;
+            const link = typeof q === 'object' ? q.havola : '#';
+            return `<a class="law-tag" href="${link}" target="_blank">📖 ${name}</a>`;
+        }).join('');
+        return `<div class="compliance-banner ok">
+            <p>✅ ${c.xulosa || 'Qonunchilikka mos'}</p>
+            ${laws ? `<div class="law-tags">${laws}</div>` : ''}
+        </div>`;
+    } else {
+        const issues = (c.muammolar || []).map(m => `<li>${m}</li>`).join('');
+        const tips   = (c.tavsiyalar || []).map(t => `<li>${t}</li>`).join('');
+        return `<div class="compliance-banner fail">
+            <p>⚠️ Compliance muammolari aniqlandi</p>
+            ${issues ? `<ul class="issue-list">${issues}</ul>` : ''}
+            ${tips   ? `<ul class="tip-list">${tips}</ul>`     : ''}
+        </div>`;
+    }
+}
 
-                let statusBadge = `<span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded border border-yellow-300">Kutilmoqda</span>`;
-                if (isApproved) statusBadge = `<span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded border border-green-300">Tasdiqlangan</span>`;
-                if (isRejected) statusBadge = `<span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded border border-red-300">Rad etilgan</span>`;
+/* ─── RENDER REQUESTS ─── */
+function renderRequests() {
+    const list = document.getElementById('requestsList');
+    let items = [...allRequests];
+    if (activeFilter !== 'all') items = items.filter(r => r.status === activeFilter);
+    document.getElementById('listCount').textContent = items.length + ' ta';
 
-                const formattedDraft = displayText
-                    .replace(/\n/g, '<br>')
-                    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+    if (items.length === 0) {
+        list.innerHTML = `<div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <h3>Murojaatlar yo'q</h3>
+            <p>${activeFilter === 'all' ? 'Hali hech qanday murojaat yuklanmagan' : 'Bu toifada murojaatlar topilmadi'}</p>
+        </div>`;
+        return;
+    }
 
-                return `
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                    <div class="bg-gray-50 border-b border-gray-200 p-4 flex justify-between items-center">
-                        <div>
-                            <h3 class="font-bold text-lg text-gray-800">${req.classification.mavzu || 'Noma\'lum'}</h3>
-                            <div class="text-xs text-gray-500 mt-1 flex flex-wrap gap-3">
-                                <span>📄 ${req.filename}</span>
-                                <span>🏢 <b>${req.classification.tur.toUpperCase()}</b></span>
-                                <span>⏳ <b>${req.classification.muddat_kun} kun</b></span>
-                                <span class="${req.classification.risk === 'high' ? 'text-red-600 font-bold' : ''}">⚠️ Risk: ${req.classification.risk}</span>
-                                <span class="${getConfidenceColor(confidence)} font-bold">🎯 Ishonch: ${confidence}%</span>
-                                <span class="text-gray-400">🕐 ${new Date(req.created_at).toLocaleString()}</span>
-                            </div>
-                        </div>
-                        <div class="flex gap-2 items-center">
-                            ${getComplianceBadge(compliance)}
-                            ${statusBadge}
-                        </div>
+    list.innerHTML = items.map(req => {
+        const cl   = req.classification || {};
+        const comp = req.compliance;
+        const isPending = req.status === 'pending';
+
+        const displayText = (req.edited_response || req.draft_response || '')
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/\n/g, '<br>')
+            .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+        const rawText = req.edited_response || req.draft_response || '';
+
+        // ── FIX: use text_preview (backend field name) ──
+        const previewText = (req.text_preview || '');
+        const previewDisplay = previewText
+            ? previewText.substring(0, 500) + (previewText.length > 500 ? '…' : '')
+            : null;
+
+        const classifyConf = cl.ishonch_darajasi || 0;
+        const hasError     = (req.draft_response || '').startsWith('[TEXNIK XATOLIK');
+        const isCompliant  = comp ? comp.muvofiq : null;
+
+        const warnings = [];
+        if (classifyConf < 70) warnings.push('<span title="AI hujjat turini aniqlay olmadi">⚠️ Tasnif ishonchi past</span>');
+        if (comp && !comp.muvofiq) warnings.push('<span>🔴 Compliance muammosi</span>');
+        if (hasError) warnings.push('<span>🔧 Javob generatsiyasida xatolik</span>');
+
+        return `<div class="request-card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title">${cl.mavzu || 'Mavzu aniqlanmadi'}</div>
+                    <div class="card-meta">
+                        <span class="meta-item">📄 <span class="label">${req.filename || '—'}</span></span>
+                        <span class="badge badge-type">${(cl.tur || 'boshqa').toUpperCase()}</span>
+                        ${riskBadge(cl.risk)}
+                        ${deadlinePill(cl.muddat_kun || 10)}
+                        <span class="meta-item">🕐 ${new Date(req.created_at).toLocaleString()}</span>
                     </div>
-
-                    ${compliance && !compliance.muvofiq ? `
-                    <div class="bg-red-50 border-b border-red-200 p-3">
-                        <p class="text-xs font-bold text-red-700 mb-1">⚠️ Compliance muammolari:</p>
-                        <ul class="text-xs text-red-600 list-disc list-inside">
-                            ${compliance.muammolar.map(m => `<li>${m}</li>`).join('')}
-                        </ul>
-                        ${compliance.tavsiyalar.length > 0 ? `
-                        <p class="text-xs font-bold text-blue-700 mt-2 mb-1">💡 Tavsiyalar:</p>
-                        <ul class="text-xs text-blue-600 list-disc list-inside">
-                            ${compliance.tavsiyalar.map(t => `<li>${t}</li>`).join('')}
-                        </ul>` : ''}
-                    </div>` : ''}
-
-                    ${compliance && compliance.muvofiq ? `
-<div class="bg-green-50 border-b border-green-200 p-3">
-    <p class="text-xs text-green-700 font-bold mb-2">✅ ${compliance.xulosa}</p>
-    ${compliance.qonunlar && compliance.qonunlar.length > 0 ? `
-    <p class="text-xs text-gray-500 mb-1">📚 Javobda ishlatilgan qonunlar:</p>
-    <div class="flex flex-wrap gap-2">
-        ${compliance.qonunlar.map(q => `
-            <a href="${typeof q === 'object' ? q.havola : '#'}" target="_blank"
-               class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded hover:bg-blue-200 transition border border-blue-200">
-                📖 ${typeof q === 'object' ? q.nomi : q}
-            </a>
-        `).join('')}
-    </div>` : '<p class="text-xs text-gray-400">Qonun moddalari aniqlanmadi</p>'}
-</div>` : ''}
-
-                    <div class="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        <div class="bg-gray-50 p-4 rounded border border-gray-200">
-                            <h4 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Asl Murojaat</h4>
-                            <p class="text-sm text-gray-700 whitespace-pre-wrap">${req.text.substring(0, 300)}...</p>
-                        </div>
-                        <div class="bg-blue-50 p-4 rounded border border-blue-200">
-                            <h4 class="text-xs font-bold text-blue-800 uppercase tracking-wider mb-2 flex justify-between">
-                                AI Javob Loyihasi
-                                ${req.edited_response ? '<span class="text-green-600 text-xs">✏️ Tahrirlangan</span>' : ''}
-                            </h4>
-                            ${req.status === 'pending' ? `
-                            <textarea id="edit-${req.id}" class="w-full text-sm text-gray-800 bg-white border border-blue-200 rounded p-2 h-40 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300">${displayText}</textarea>
-                            <button onclick="saveEdit('${req.id}')" class="mt-2 text-xs text-blue-600 hover:text-blue-800 border border-blue-300 px-2 py-1 rounded">💾 Saqlash</button>
-                            ` : `
-                            <p class="text-sm text-gray-800 h-40 overflow-y-auto pr-2">${formattedDraft}</p>
-                            `}
-                        </div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                    ${statusBadge(req.status)}
+                    <div style="display:flex;align-items:center;gap:5px;cursor:help"
+                         title="Hujjat TURINI aniqlash ishonchi (prokuratura/soliq/MB). Javob sifatini bildirmaydi.">
+                        <span style="font-size:0.65rem;color:var(--text-muted);">Tasnif:</span>
+                        <span style="font-family:'DM Mono',monospace;font-size:0.85rem;font-weight:500;${confidenceColor(classifyConf)}">${classifyConf}%</span>
                     </div>
+                    ${isCompliant !== null
+                        ? `<span class="badge ${isCompliant ? 'badge-compliant' : 'badge-noncompliant'}">${isCompliant ? '✅ Mos' : '⚠️ Muammo'}</span>`
+                        : ''}
+                </div>
+            </div>
 
-                    ${req.status === 'pending' ? `
-                    <div class="p-4 border-t border-gray-200 bg-gray-50 flex justify-between items-center">
-                        <div class="text-xs text-gray-400">
-                            ${confidence < 70 ? '⚠️ Ishonch past — diqqat bilan tekshiring!' : ''}
-                            ${compliance && !compliance.muvofiq ? '🔴 Compliance muammosi bor!' : ''}
-                        </div>
-                        <div class="flex gap-3">
-                            <button onclick="updateStatus('${req.id}', 'reject')" class="px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 transition">Rad etish</button>
-                            <button onclick="updateStatus('${req.id}', 'approve')" class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition">✅ Tasdiqlash & Yuborish</button>
-                        </div>
+            ${complianceBanner(comp)}
+
+            <div class="card-body">
+                <div class="card-panel">
+                    <div class="panel-label">Asl Murojaat</div>
+                    ${previewDisplay
+                        ? `<div class="panel-text">${previewDisplay}</div>`
+                        : `<div class="panel-empty">Matn ko'rsatilmaydi (fayl ${req.full_text_length ? (req.full_text_length/1000).toFixed(1)+'k belgi' : 'bo\'sh'})</div>`
+                    }
+                </div>
+                <div class="card-panel">
+                    <div class="panel-label">
+                        AI Javob Loyihasi
+                        ${req.edited_response ? '<span style="color:var(--green);font-size:0.65rem">✏️ Tahrirlangan</span>' : ''}
                     </div>
-                    ` : `
-                    <div class="p-4 border-t border-gray-200 bg-gray-50 text-xs text-gray-400 text-right">
-                        ${req.approved_at ? `Amal bajarilgan: ${new Date(req.approved_at).toLocaleString()}` : ''}
-                    </div>`}
-                </div>`;
-            }).join('');
-        }
+                    ${isPending
+                        ? `<textarea class="draft-edit" id="edit-${req.id}">${rawText}</textarea>
+                           <button class="save-btn" onclick="saveEdit('${req.id}')">💾 Saqlash</button>`
+                        : `<div class="panel-text">${displayText}</div>`
+                    }
+                </div>
+            </div>
 
-        async function uploadFile() {
-            const fileInput = document.getElementById('fileInput');
-            if (!fileInput.files.length) return;
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
-            const btn = document.getElementById('uploadBtn');
-            btn.innerText = "⏳ Tahlil qilinmoqda...";
-            btn.disabled = true;
-            btn.classList.add('opacity-50');
-            try {
-                await fetch(`${API_URL}/upload`, { method: 'POST', body: formData });
-                fileInput.value = "";
-                fetchRequests();
-            } catch (err) {
-                alert("Xatolik yuz berdi!");
-            } finally {
-                btn.innerText = "+ Fayl Yuklash";
-                btn.disabled = false;
-                btn.classList.remove('opacity-50');
+            ${isPending
+                ? `<div class="card-footer">
+                    <div class="footer-warn">${warnings.join('')}</div>
+                    <div class="action-btns">
+                        <button class="btn-reject" onclick="updateStatus('${req.id}', 'reject')">Rad etish</button>
+                        <button class="btn-approve" onclick="updateStatus('${req.id}', 'approve')">✅ Tasdiqlash</button>
+                    </div>
+                   </div>`
+                : `<div class="card-footer">
+                    <div></div>
+                    <div class="footer-done">${req.approved_at
+                        ? 'Tasdiqlangan: ' + new Date(req.approved_at).toLocaleString()
+                        : req.rejected_at
+                        ? 'Rad etilgan: '  + new Date(req.rejected_at).toLocaleString()
+                        : ''}</div>
+                   </div>`
             }
-        }
+        </div>`;
+    }).join('');
+}
 
-        async function updateStatus(id, action) {
-            await fetch(`${API_URL}/requests/${id}/${action}`, { method: 'POST' });
-            fetchRequests();
-        }
+/* ─── RENDER AUDIT ─── */
+function renderAudit() {
+    const tbody = document.getElementById('auditBody');
+    document.getElementById('auditCount').textContent = allRequests.length + ' ta yozuv';
+    if (allRequests.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:3rem;color:var(--text-muted);font-style:italic">Hozircha amaliyotlar yo'q</td></tr>`;
+        return;
+    }
+    tbody.innerHTML = allRequests.map(req => {
+        const cl = req.classification || {};
+        return `<tr>
+            <td><span class="mono">${req.id}</span></td>
+            <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${req.filename}">${req.filename}</td>
+            <td><span class="badge badge-type">${(cl.tur || '—').toUpperCase()}</span></td>
+            <td>${riskBadge(cl.risk || 'low')}</td>
+            <td><span style="font-family:'DM Mono',monospace;font-size:0.78rem;${confidenceColor(cl.ishonch_darajasi)}">${cl.ishonch_darajasi || '?'}%</span></td>
+            <td>${deadlinePill(cl.muddat_kun || 10)}</td>
+            <td>${statusBadge(req.status)}</td>
+            <td><span class="mono">${new Date(req.created_at).toLocaleString()}</span></td>
+            <td><span class="mono">${req.approved_at ? new Date(req.approved_at).toLocaleString() : req.rejected_at ? new Date(req.rejected_at).toLocaleString() : '—'}</span></td>
+        </tr>`;
+    }).join('');
+}
 
+/* ─── API CALLS ─── */
+async function fetchRequests() {
+    try {
+        const res  = await fetch(`${API}/requests`);
+        const data = await res.json();
+        allRequests = Array.isArray(data) ? data : (data.items || []);
+        document.getElementById('statTotal').textContent    = allRequests.length;
+        document.getElementById('statPending').textContent  = allRequests.filter(r => r.status === 'pending').length;
+        document.getElementById('statApproved').textContent = allRequests.filter(r => r.status === 'approved').length;
+        document.getElementById('statRejected').textContent = allRequests.filter(r => r.status === 'rejected').length;
+        renderRequests();
+    } catch(e) {
+        console.error('fetchRequests error:', e);
+    }
+}
+
+async function uploadFile() {
+    const fi = document.getElementById('fileInput');
+    if (!fi.files.length) return;
+
+    const btn     = document.getElementById('uploadBtn');
+    const btnText = document.getElementById('uploadBtnText');
+    btn.classList.add('loading');
+    btn.disabled = true;
+    btnText.textContent = 'Tahlil qilinmoqda…';
+    setProgress(30);
+
+    const fd = new FormData();
+    fd.append('file', fi.files[0]);
+    const fname = fi.files[0].name;
+
+    try {
+        setProgress(60);
+        const res = await fetch(`${API}/upload`, { method: 'POST', body: fd });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.detail || 'Server xatosi');
+        }
+        setProgress(100);
+        fi.value = '';
+        toast(`✅ "${fname}" muvaffaqiyatli yuklandi va tahlil qilindi`, 'success');
         fetchRequests();
-        setInterval(fetchRequests, 10000);
-    </script>
+    } catch(e) {
+        setProgress(0);
+        toast('❌ Xatolik: ' + e.message, 'error');
+    } finally {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        btnText.textContent = '+ Fayl Yuklash';
+    }
+}
+
+async function updateStatus(id, action) {
+    try {
+        const res = await fetch(`${API}/requests/${id}/${action}`, { method: 'POST' });
+        if (!res.ok) throw new Error('Server xatosi');
+        toast(action === 'approve' ? '✅ Murojaat tasdiqlandi' : '❌ Murojaat rad etildi',
+              action === 'approve' ? 'success' : 'error');
+        fetchRequests();
+    } catch(e) {
+        toast('Xatolik: ' + e.message, 'error');
+    }
+}
+
+async function saveEdit(id) {
+    const ta = document.getElementById('edit-' + id);
+    if (!ta) return;
+    try {
+        const res = await fetch(`${API}/requests/${id}/edit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: ta.value })
+        });
+        if (!res.ok) throw new Error('Server xatosi');
+        toast('💾 Javob saqlandi', 'success');
+        fetchRequests();
+    } catch(e) {
+        toast('Saqlashda xatolik: ' + e.message, 'error');
+    }
+}
+
+/* ─── INIT ─── */
+fetchRequests();
+setInterval(fetchRequests, 15000);
+</script>
 </body>
 </html>

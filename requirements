@@ -1,0 +1,24 @@
+# SQB Legal AI v3.0 — Python dependencies
+# Install: pip install -r requirements.txt
+
+# Web framework
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+python-multipart==0.0.9
+
+# AI — Google Gemini (current SDK)
+google-genai>=1.0.0
+
+# RAG / Vector store
+langchain>=0.3.0
+langchain-community>=0.3.0
+langchain-text-splitters>=0.3.0
+faiss-cpu>=1.8.0
+sentence-transformers>=3.0.0
+
+# Document parsing
+pymupdf>=1.24.0          # PDF (fitz)
+python-docx>=1.1.0       # DOCX
+
+# Utilities
+python-dotenv>=1.0.0

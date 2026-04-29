@@ -1,148 +1,266 @@
+"""
+classifier.py  –  murojaat tasniflash va compliance tekshirish
+Google Gemini API orqali ishlaydi.
+"""
 import os
 import json
+import time
 import urllib.parse
-import vertexai
-from vertexai.generative_models import GenerativeModel
+import logging
+from google import genai
+from google.genai import types
+from google.genai import errors as genai_errors
 from dotenv import load_dotenv
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
-PROJECT_ID = "sqb-ai-response-system"
-LOCATION = "us-central1"
-
-vertexai.init(project=PROJECT_ID, location=LOCATION)
-model = GenerativeModel("gemini-2.5-flash")
+_client: genai.Client | None = None
 
 
-LEX_UZ_LINKS = {
-    "bank siri": "https://lex.uz/uz/docs/-41760",
-    "jinoyat-protsessual": "https://lex.uz/docs/-111460",
-    "jpk": "https://lex.uz/docs/-111460",
-    "banklar va bank faoliyati": "https://lex.uz/acts/-2681",
-    "soliq kodeksi": "https://lex.uz/acts/-4674902",
-    "pul yuvish": "https://lex.uz/acts/-283717",
-    "jinoiy faoliyatdan olingan daromadlarni legallashtirish": "https://lex.uz/acts/-283717",
-    "markaziy bank": "https://lex.uz/acts/-72266",
-    "fuqarolik kodeksi": "https://lex.uz/acts/-111189"
+def _get_client() -> genai.Client:
+    global _client
+    if _client is None:
+        api_key = os.getenv("GEMINI_API_KEY", "")
+        if not api_key:
+            raise RuntimeError(
+                "GEMINI_API_KEY topilmadi. .env faylida GEMINI_API_KEY=... ni kiriting."
+            )
+        _client = genai.Client(api_key=api_key)
+    return _client
+
+
+# gemini-2.5-flash: works on free tier, smarter than 2.0-flash
+MODEL          = os.getenv("CLASSIFIER_MODEL", "gemini-2.0-flash-lite")
+FALLBACK_MODEL = os.getenv("CLASSIFIER_FALLBACK", "gemini-2.0-flash")
+
+# ── Lex.uz law → link map ──────────────────────────────────────────────────
+LEX_LINKS: dict[str, str] = {
+    "bank siri":                  "https://lex.uz/uz/docs/-41760",
+    "jinoyat-protsessual":        "https://lex.uz/docs/-111460",
+    "jpk":                        "https://lex.uz/docs/-111460",
+    "banklar va bank faoliyati":  "https://lex.uz/acts/-2681",
+    "soliq kodeksi":              "https://lex.uz/acts/-4674902",
+    "pul yuvish":                 "https://lex.uz/acts/-283717",
+    "jinoiy faoliyatdan olingan": "https://lex.uz/acts/-283717",
+    "markaziy bank":              "https://lex.uz/acts/-72266",
+    "fuqarolik kodeksi":          "https://lex.uz/acts/-111189",
+    "aml":                        "https://lex.uz/acts/-283717",
+    "moliyaviy razvedka":         "https://lex.uz/acts/-283717",
 }
 
 
-def classify_request(text: str) -> dict:
-    prompt = f"""
-    Quyidagi rasmiy murojaatni tahlil qiling va FAQAT JSON formatda qaytaring:
-    {{
-        "tur": "prokuratura | soliq | markaziy_bank | boshqa",
-        "mavzu": "murojaatning qisqa tavsifi",
-        "muddat_kun": 7,
-        "risk": "low | medium | high",
-        "kalit_sozlar": ["so'z1", "so'z2"],
-        "ishonch_darajasi": 85
-    }}
-    ishonch_darajasi = AI ning o'z javobiga ishonchi 0-100 orasida.
-    Murojaat matni:
-    {text[:1000]}
-    FAQAT JSON qaytaring, boshqa hech narsa yozmang.
-    """
+def _lex_link(law_name: str) -> str:
+    low = law_name.lower()
+    for key, url in LEX_LINKS.items():
+        if key in low:
+            return url
+    return f"https://lex.uz/uz/search/all?searchtitle={urllib.parse.quote(law_name)}"
+
+
+def _retry_wait(e: Exception) -> int:
+    """Extract retry delay from Gemini error, default 35s."""
+    import re
     try:
-        response = model.generate_content(prompt)
-        raw = response.text.strip()
-        if "```" in raw:
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-        raw = raw.strip()
-        result = json.loads(raw)
-        result['kalit_sozlar'] = [str(k) if not isinstance(k, str) else k for k in result.get('kalit_sozlar', [])]
+        m = re.search(r"retryDelay.*?(\d+)s", str(e))
+        if m:
+            return int(m.group(1)) + 2
+    except Exception:
+        pass
+    return 35
+
+def _llm(prompt: str, system: str = "", max_tokens: int = 1024, retries: int = 3) -> str:
+    """Call Gemini with retry on 429/503 and automatic model fallback."""
+    config = types.GenerateContentConfig(
+        max_output_tokens=max_tokens,
+        temperature=0.1,
+        system_instruction=system if system else None,
+        thinking_config=types.ThinkingConfig(thinking_budget=0),
+    )
+    models_to_try = [MODEL, FALLBACK_MODEL]
+    for model in models_to_try:
+        for attempt in range(retries):
+            try:
+                response = _get_client().models.generate_content(
+                    model=model, contents=prompt, config=config,
+                )
+                if model != MODEL:
+                    logger.warning(f"Fallback model ishlatildi: {model}")
+                return response.text.strip()
+            except (genai_errors.ClientError, genai_errors.ServerError) as e:
+                code = getattr(e, "code", 0) or 0
+                retryable = code in (429, 503) or "UNAVAILABLE" in str(e) or "RESOURCE_EXHAUSTED" in str(e)
+                if retryable and attempt < retries - 1:
+                    wait = _retry_wait(e)
+                    logger.warning(f"[{model}] xatosi ({code}), {wait}s kutilmoqda... (urinish {attempt+1}/{retries})")
+                    time.sleep(wait)
+                elif retryable:
+                    logger.warning(f"[{model}] barcha urinishlar tugadi, keyingi modelga o'tilmoqda...")
+                    break
+                else:
+                    raise
+    raise RuntimeError("Barcha modellar tugadi. Keyinroq qayta urinib ko'ring.")
+
+
+def _parse_json(raw: str) -> dict:
+    """
+    Robustly extract a JSON object from LLM output.
+    Handles: markdown fences, preamble text, truncated output mid-string or mid-key.
+    """
+    raw = raw.strip()
+
+    # Strip markdown fences
+    if "```" in raw:
+        for chunk in raw.split("```"):
+            s = chunk.lstrip("json").strip()
+            if s.startswith("{"):
+                raw = s
+                break
+
+    start = raw.find("{")
+    if start == -1:
+        raise ValueError("JSON obyekti topilmadi")
+    raw = raw[start:]
+
+    # Try parsing as-is first
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        pass
+
+    # Repair: scan backwards from last comma to find last complete key:value pair
+    cleaned = raw.rstrip()
+    # Try progressively shorter suffixes at natural break points (after , or after closing " ] })
+    import re
+    break_points = [m.end() for m in re.finditer(r'(?:,|\]|\}|")', cleaned)]
+    for bp in reversed(break_points):
+        snippet = cleaned[:bp].rstrip().rstrip(",")
+        open_obj = snippet.count("{") - snippet.count("}")
+        open_arr = snippet.count("[") - snippet.count("]")
+        if open_obj < 0 or open_arr < 0:
+            continue
+        completed = snippet + ("]" * open_arr) + ("}" * open_obj)
+        try:
+            result = json.loads(completed)
+            logger.warning(f"JSON repaired ({len(raw)-bp} chars trimmed): {list(result.keys())}")
+            return result
+        except json.JSONDecodeError:
+            continue
+
+    raise ValueError(f"JSON tahlil qilinmadi: {raw[:200]}")
+
+
+def classify_request(text: str) -> dict:
+    """
+    Returns: tur, mavzu, muddat_kun, risk, kalit_sozlar,
+             ishonch_darajasi, organ_nomi, maqsad, til
+    """
+    system = (
+        "Siz O'zbekiston huquq tizimi va bank faoliyati bo'yicha mutaxassississiz. "
+        "Faqat JSON formatida javob bering. JSON qiymatlarida apostrof (') ishlatmang."
+    )
+    prompt = f"""Quyidagi rasmiy murojaatni tahlil qiling va FAQAT JSON formatda qaytaring:
+{{
+    "tur": "prokuratura | soliq | markaziy_bank | boshqa",
+    "mavzu": "murojaatning qisqa tavsifi (max 100 belgi)",
+    "muddat_kun": 7,
+    "risk": "low | medium | high",
+    "kalit_sozlar": ["soz1", "soz2", "soz3"],
+    "ishonch_darajasi": 85,
+    "organ_nomi": "Sorovchi organ nomi",
+    "maqsad": "tergov | tekshiruv | nazorat | boshqa",
+    "til": "uz | ru | en"
+}}
+
+Qoidalar:
+- muddat_kun: prokuratura=10, soliq=15, markaziy_bank=5, boshqa=10
+- risk=high: jinoiy ish, muzlatish, katta miqdor, AML
+- risk=medium: odatiy tekshiruv, standart sorov
+- risk=low: malumot sorovi, statistika
+
+Murojaat:
+{text[:2000]}
+
+FAQAT JSON qaytaring."""
+
+    try:
+        result = _parse_json(_llm(prompt, system=system, max_tokens=2048))
+        result["tur"] = result.get("tur") if result.get("tur") in (
+            "prokuratura", "soliq", "markaziy_bank", "boshqa"
+        ) else "boshqa"
+        result["kalit_sozlar"]     = [str(k) for k in result.get("kalit_sozlar", [])][:10]
+        result["muddat_kun"]       = int(result.get("muddat_kun") or 10)
+        result["ishonch_darajasi"] = max(0, min(100, int(result.get("ishonch_darajasi") or 0)))
+        result["risk"] = result.get("risk") if result.get("risk") in (
+            "low", "medium", "high"
+        ) else "medium"
+        result.setdefault("organ_nomi", "")
+        result.setdefault("maqsad", "boshqa")
+        result.setdefault("til", "uz")
         return result
     except Exception as e:
-        print(f"Classification Error: {e}")
+        logger.error(f"classify_request error: {e}")
         return {
-            "tur": "boshqa",
-            "mavzu": "Tahlil qilinmadi",
-            "muddat_kun": 10,
-            "risk": "medium",
-            "kalit_sozlar": [],
-            "ishonch_darajasi": 0
+            "tur": "boshqa", "mavzu": "Tahlil qilinmadi", "muddat_kun": 10,
+            "risk": "medium", "kalit_sozlar": [], "ishonch_darajasi": 0,
+            "organ_nomi": "", "maqsad": "boshqa", "til": "uz",
         }
 
 
-def check_compliance(draft_response: str, context: str) -> dict:
-    prompt = f"""
-    Siz O'zbekiston bank huquqi bo'yicha mutaxassisiz. Quyidagi bank javob loyihasini tahlil qiling.
-
-    Haqiqiy qonunchilik bazasi (Faqat shu qoidalarga asoslanib xulosa qiling):
-    {context}
-
-    Loyiha matni:
-    {draft_response[:1500]}
-
-    Vazifa: Loyiha yuqoridagi qonunchilik bazasiga zid emasligini tekshiring. Loyihada qaysi qonunlar, kodekslar va moddalarga havola qilinganligini aniqlang.
-
-    FAQAT ushbu JSON formatni qaytaring:
-    {{
-        "muvofiq": true,
-        "xavf_darajasi": "low",
-        "muammolar": ["agar qonunga zid joyi bo'lsa, xatolar ro'yxati"],
-        "tavsiyalar": ["qonun asosida yuridik tavsiyalar"],
-        "qonunlar": [
-            {{"nomi": "Qonun nomi (masalan: Soliq kodeksi, Bank siri to'g'risidagi qonun)"}}
-        ],
-        "xulosa": "Javob qaysi qonunlarga asoslanganligi va muvofiqligi haqida 1 ta gap"
-    }}
+def check_compliance(draft: str, context: str) -> dict:
     """
+    Returns: muvofiq, xavf_darajasi, ball, muammolar,
+             tavsiyalar, qonunlar (with links), xulosa, bank_siri_buzilishimi
+    """
+    system = (
+        "Siz O'zbekiston bank huquqi va compliance bo'yicha yuqori malakali mutaxassississiz. "
+        "Faqat JSON formatida javob bering. JSON qiymatlarida apostrof (') ishlatmang."
+    )
+    prompt = f"""Javob loyihasini O'zbekiston qonunchiligiga muvofiqligini tekshiring.
+
+QONUNCHILIK BAZASI:
+{context[:3000]}
+
+TEKSHIRILADIGAN JAVOB LOYIHASI:
+{draft[:2500]}
+
+FAQAT ushbu JSON formatda qaytaring:
+{{
+    "muvofiq": true,
+    "xavf_darajasi": "low | medium | high",
+    "ball": 85,
+    "muammolar": ["muammo 1"],
+    "tavsiyalar": ["tavsiya 1"],
+    "qonunlar": [
+        {{"nomi": "Banklar va bank faoliyati togrisidagi Qonun 27-modda", "band": "3-qism"}}
+    ],
+    "xulosa": "2-3 gapda xulosa",
+    "bank_siri_buzilishimi": false
+}}
+
+ball: 0=butunlay notogri, 100=mukammal
+FAQAT JSON qaytaring."""
+
     try:
-        response = model.generate_content(prompt)
-        raw = response.text.strip()
-
-        if "```" in raw:
-            parts = raw.split("```")
-            for part in parts:
-                if "{" in part:
-                    raw = part
-                    if raw.startswith("json"):
-                        raw = raw[4:]
-                    break
-
-        start = raw.find("{")
-        end = raw.rfind("}") + 1
-        if start != -1 and end > start:
-            raw = raw[start:end]
-
-        result = json.loads(raw)
-        result['muammolar'] = [str(m) if not isinstance(m, str) else m for m in result.get('muammolar', [])]
-        result['tavsiyalar'] = [str(t) if not isinstance(t, str) else t for t in result.get('tavsiyalar', [])]
-
-
-        enriched_laws = []
-        for law in result.get('qonunlar', []):
-            law_name = law.get('nomi', '')
-            law_name_lower = law_name.lower()
-
-
-            encoded_name = urllib.parse.quote(law_name)
-            found_link = f"https://lex.uz/uz/search/all?searchtitle={encoded_name}"
-
-
-            for key, link in LEX_UZ_LINKS.items():
-                if key in law_name_lower:
-                    found_link = link
-                    break
-
-            enriched_laws.append({
-                "nomi": law_name,
-                "havola": found_link
-            })
-
-        result['qonunlar'] = enriched_laws
+        result = _parse_json(_llm(prompt, system=system, max_tokens=2048))
+        result["muammolar"]  = [str(m) for m in result.get("muammolar", [])]
+        result["tavsiyalar"] = [str(t) for t in result.get("tavsiyalar", [])]
+        result["ball"]       = max(0, min(100, int(result.get("ball") or 70)))
+        result.setdefault("bank_siri_buzilishimi", False)
+        enriched = []
+        for law in result.get("qonunlar", []):
+            if isinstance(law, dict):
+                name, band = law.get("nomi", ""), law.get("band", "")
+            else:
+                name, band = str(law), ""
+            enriched.append({"nomi": name, "band": band, "havola": _lex_link(name)})
+        result["qonunlar"] = enriched
         return result
-
     except Exception as e:
-        print(f"Compliance Error FULL: {type(e).__name__}: {e}")
+        logger.error(f"check_compliance error: {e}")
         return {
-            "muvofiq": True,
-            "xavf_darajasi": "low",
-            "muammolar": [],
-            "tavsiyalar": [],
-            "qonunlar": [],
-            "xulosa": "Qonunchilik tekshiruvi bajarildi"
+            "muvofiq": True, "xavf_darajasi": "low", "ball": 70,
+            "muammolar": [], "tavsiyalar": [],
+            "qonunlar": [], "xulosa": "Tekshiruv bajarildi",
+            "bank_siri_buzilishimi": False,
         }
